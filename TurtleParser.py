@@ -17,17 +17,21 @@ class Parser(object):
     def update(self, string):
         self.tokenizer.update(string)
 
+    def reset(self, input=""):
+        self.tokenizer.reset(input)
+
     def parse(self):
         return Parser.handle_statements(self.tokenizer.analyze())
 
     @staticmethod
     def handle_statements(stmt):
-        """Parse blocks of statements.
+        """Parse blocks of statements. Empty lines are ignored.
 
         >>> tree = Parser.handle_loop(Tokenizer.tokenize('''for X=0 to 100 do
         ...     for Y=1 to 10 do
         ...         move(X, Y)
         ...     end
+        ... 
         ... end'''))
         >>> ast.dump(tree)
         "For(target=Name(id='X', ctx=Store()), iter=Call(func=Name(id='range', ctx=Load()), args=[Num(n=0), Num(n=100)]), body=[For(target=Name(id='Y', ctx=Store()), iter=Call(func=Name(id='range', ctx=Load()), args=[Num(n=1), Num(n=10)]), body=[Expr(value=Call(func=Name(id='move', ctx=Load()), args=[Name(id='X', ctx=Load()), Name(id='Y', ctx=Load())]))])])"
@@ -66,7 +70,7 @@ class Parser(object):
             return ast.Expression(Parser.handle_arithmetic(stmt))
         elif token_type[0] == 'FOR' and token_type[-1] == 'END':
             return Parser.handle_loop(stmt)
-        raise SyntaxError('unknown statement %i %s' % (n, ' '.join(token_type)))
+        raise SyntaxError('unknown statements %s' % ' '.join(token_type))
 
     @staticmethod
     def handle_loop(stmt):
@@ -80,12 +84,18 @@ class Parser(object):
         Traceback (most recent call last):
             ...
         SyntaxError: invalid loop format
+
+        >>> tree = Parser.handle_loop(Tokenizer.tokenize('for blah = to do test end'))
+        Traceback (most recent call last):
+            ...
+        SyntaxError: invalid loop format
         """
 
         token_type, value = zip(*stmt)
+        token_type = list(token_type)
         to = token_type.index('TO')
         do = token_type.index('DO')
-        if token_type[1] != 'IDENTIFIER' or token_type[2] != 'EQUAL' or to > do:
+        if token_type[1] != 'IDENTIFIER' or token_type[2] != 'EQUAL' or to < 4 or do < 6:
             raise SyntaxError('invalid loop format')
 
         start = Parser.handle_arithmetic(stmt[3:to])
@@ -109,7 +119,9 @@ class Parser(object):
 
         n = len(stmt)
         args = []
-        if n > 2 and stmt[1][0] == 'OPEN' and stmt[-1][0] == 'CLOSE':
+        if n > 2:
+            if stmt[1][0] != 'OPEN' or stmt[-1][0] != 'CLOSE':
+                raise SyntaxError('Parenthesis missing')
             if n > 3:
                 arg = []
                 for item in stmt[2:-1]:

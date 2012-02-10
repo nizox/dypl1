@@ -3,6 +3,8 @@ import re
 class Tokenizer(object):
     """Tokenizer splits the code into known tokens.
 
+    Inspired by http://docs.python.org/dev/library/re.html#writing-a-tokenizer
+
     Example from the subject:
 
     >>> t=Tokenizer('''put(100, 100, 90)
@@ -36,11 +38,14 @@ class Tokenizer(object):
     def __init__(self, input=""):
         regex = '|'.join([ '(?P<%s>%s)' % rule for rule in self.rules ])
         self.prog = re.compile(regex)
-        self.input = input
-        self.position = 0
+        self.reset(input)
 
     def update(self, string):
         self.input += string
+
+    def reset(self, input=""):
+        self.input = input
+        self.position = 0
 
     def analyze(self):
         while self.position < len(self.input):
