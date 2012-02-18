@@ -64,7 +64,7 @@ class Parser(object):
         if token_type[0] == 'IDENTIFIER':
             if n > 2 and token_type[1] == 'EQUAL':
                 return Parser.handle_assignment(stmt)
-            if n == 1 or n > 2:
+            else:
                 return Parser.handle_call(stmt)
         elif token_type[0] in ('INTEGER', 'OPERATOR'):
             return ast.Expression(Parser.handle_arithmetic(stmt))
@@ -119,6 +119,8 @@ class Parser(object):
 
         n = len(stmt)
         args = []
+        if stmt[0][1] == 'turn' and stmt[1][0] == 'IDENTIFIER':
+            stmt = [ stmt[0][1] + '_' + stmt[1][1] ] + stmt[2:]
         if n > 2:
             if stmt[1][0] != 'OPEN' or stmt[-1][0] != 'CLOSE':
                 raise SyntaxError('Parenthesis missing')
